@@ -1,0 +1,12 @@
+⚠️  MACHINE FAILURE RISK — ROOT CAUSE ANALYSIS
+───────────────────────────────────────────────────────
+  • Torque_per_rpm = 1.262  strongly ↑ increases failure probability (SHAP=+0.3227)
+  • Rotational speed (RPM) = -0.979  moderately ↑ increases failure probability (SHAP=+0.1240)
+  • Tool wear (min) = -0.276  moderately ↓ decreases failure probability (SHAP=-0.1066)
+  • Power_W = 1.048  slightly ↓ decreases failure probability (SHAP=-0.0369)
+  • Tool wear (min)_ema40 = -1.148  slightly ↓ decreases failure probability (SHAP=-0.0170)
+───────────────────────────────────────────────────────
+
+  📋 Summary: High failure risk due to excessive torque (1.3N·m) — machine under mechanical stress.
+
+  🔧 Recommended Action: Dispatch technician for inspection within 24 hours.
