@@ -240,17 +240,3 @@ All temporal features use `.shift(1)` before rolling windows — the model **nev
 | matplotlib, seaborn | Visualization |
 
 ---
-
-## 📝 Viva/Interview Quick Reference
-
-**Q: Why XGBoost over Random Forest?**  
-A: XGBoost uses gradient boosting — each tree corrects errors of the previous one. It handles tabular data better, is faster to tune, and produces better recall on our imbalanced dataset.
-
-**Q: Why SMOTE instead of just class_weight?**  
-A: SMOTE creates new synthetic samples in feature space, giving the model more diverse failure examples to learn from. We combine both (SMOTE + scale_pos_weight in XGBoost) for maximum recall.
-
-**Q: How do you prevent data leakage with time-series features?**  
-A: We use `.shift(1)` before all rolling windows so the window at time `t` only contains data from times `t-1`, `t-2`, ..., never `t` itself.
-
-**Q: Why Flask for deployment?**  
-A: Flask is lightweight, widely used in production ML serving, easy to containerize with Docker, and integrates well with existing factory monitoring systems via REST.
