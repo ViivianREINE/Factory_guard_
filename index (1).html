@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FactoryGuard AI — Predictive Maintenance Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --beige: #f5f0e8;
+      --beige-dark: #ede6d6;
+      --beige-mid: #f0ead8;
+      --pink-pale: #fce8e8;
+      --pink-soft: #f5d5d5;
+      --rose-gold: #c9956c;
+      --rose-gold-light: #e8b89a;
+      --rose-dark: #a8725a;
+      --warm-grey: #9e9189;
+      --warm-grey-light: #c8bfb8;
+      --cream-white: #fdfaf5;
+      --text-dark: #2c2420;
+      --text-mid: #5c4f48;
+      --text-light: #8a7d78;
+      --success: #7aab8a;
+      --danger: #c97a7a;
+      --shadow-soft: 0 4px 24px rgba(180,140,110,0.10);
+      --shadow-card: 0 8px 40px rgba(180,140,110,0.13);
+      --radius: 20px;
+      --radius-sm: 12px;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--beige);
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background texture ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 10%, #f9e8df55 0%, transparent 70%),
+        radial-gradient(ellipse 60% 80% at 90% 90%, #f5d5d530 0%, transparent 70%),
+        var(--beige);
+    }
+
+    /* ─── Layout ─── */
+    .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+
+    /* ─── Header ─── */
+    header {
+      padding: 36px 0 28px;
+      border-bottom: 1px solid var(--beige-dark);
+      margin-bottom: 40px;
+    }
+
+    .header-inner {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+
+    .logo-area h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem; font-weight: 700;
+      color: var(--text-dark);
+      letter-spacing: -0.5px;
+    }
+    .logo-area h1 span { color: var(--rose-gold); font-style: italic; }
+    .logo-area p {
+      font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-light); margin-top: 4px; font-weight: 500;
+    }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--cream-white); border: 1px solid var(--beige-dark);
+      border-radius: 50px; padding: 10px 20px;
+      box-shadow: var(--shadow-soft);
+    }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #aaa;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .status-dot.online {
+      background: var(--success);
+      box-shadow: 0 0 8px #7aab8a88;
+      animation: pulse-green 2s infinite;
+    }
+    .status-dot.offline { background: var(--danger); }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 6px #7aab8a88; }
+      50% { box-shadow: 0 0 14px #7aab8acc; }
+    }
+    .status-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text-mid); }
+    .status-version { font-size: 0.70rem; color: var(--text-light); margin-left: 4px; }
+
+    /* ─── Grid ─── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 28px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; margin-bottom: 28px; }
+    @media (max-width: 960px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--cream-white);
+      border-radius: var(--radius);
+      border: 1px solid var(--beige-dark);
+      box-shadow: var(--shadow-card);
+      padding: 32px;
+      transition: box-shadow 0.3s, transform 0.3s;
+    }
+    .card:hover { box-shadow: 0 12px 50px rgba(180,140,110,0.17); }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem; font-weight: 600; color: var(--text-dark);
+      margin-bottom: 6px;
+    }
+    .card-subtitle { font-size: 0.72rem; color: var(--text-light); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 28px; }
+
+    /* ─── Form Elements ─── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-label {
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-mid);
+    }
+    .form-value {
+      font-size: 1.1rem; font-weight: 600; color: var(--rose-gold);
+      min-width: 60px; text-align: right;
+    }
+    .label-row { display: flex; justify-content: space-between; align-items: center; }
+
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      border-radius: 4px;
+      background: linear-gradient(to right, var(--rose-gold) 0%, var(--rose-gold) var(--pct, 30%), var(--beige-dark) var(--pct, 30%));
+      outline: none; cursor: pointer; transition: background 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--cream-white); border: 2.5px solid var(--rose-gold);
+      box-shadow: 0 2px 8px rgba(200,140,100,0.25); cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.2); box-shadow: 0 3px 12px rgba(200,140,100,0.4); }
+
+    select, .form-select {
+      width: 100%; padding: 12px 16px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--beige-dark); background: var(--beige);
+      font-family: 'Montserrat', sans-serif; font-size: 0.9rem; color: var(--text-dark);
+      cursor: pointer; outline: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9956c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      transition: border-color 0.2s;
+    }
+    select:focus { border-color: var(--rose-gold); }
+
+    /* ─── Button ─── */
+    .btn-predict {
+      width: 100%; margin-top: 28px; padding: 16px 32px;
+      background: linear-gradient(135deg, var(--rose-gold) 0%, var(--rose-dark) 100%);
+      color: white; border: none; border-radius: var(--radius-sm);
+      font-family: 'Montserrat', sans-serif; font-size: 0.88rem;
+      font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; box-shadow: 0 6px 20px rgba(200,130,90,0.35);
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn-predict:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(200,130,90,0.45); }
+    .btn-predict:active:not(:disabled) { transform: translateY(0); }
+    .btn-predict:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    /* ─── Loading Spinner ─── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Result Card ─── */
+    .result-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 260px; gap: 12px;
+    }
+    .result-empty .icon { font-size: 2.5rem; opacity: 0.3; }
+    .result-empty p { color: var(--text-light); font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .result-content { animation: fadeSlideUp 0.5s ease forwards; }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .prediction-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 24px; border-radius: 50px;
+      font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700;
+      letter-spacing: 0.05em; margin-bottom: 24px;
+    }
+    .prediction-badge.failure {
+      background: #fce8e8; color: #b05a5a; border: 1.5px solid #e8b8b8;
+    }
+    .prediction-badge.normal {
+      background: #e8f5ed; color: #4a8a60; border: 1.5px solid #a8d4b8;
+    }
+
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-box {
+      background: var(--beige); border-radius: var(--radius-sm);
+      padding: 16px; border: 1px solid var(--beige-dark); text-align: center;
+    }
+    .stat-box .stat-val {
+      font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700;
+      color: var(--rose-gold); display: block;
+    }
+    .stat-box .stat-key {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-light); margin-top: 4px;
+    }
+
+    .prob-bar-wrap { margin-bottom: 20px; }
+    .prob-bar-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-mid); font-weight: 600; }
+    .prob-bar-track {
+      height: 8px; background: var(--beige-dark); border-radius: 8px; overflow: hidden;
+    }
+    .prob-bar-fill {
+      height: 100%; border-radius: 8px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+      background: linear-gradient(90deg, var(--rose-gold-light), var(--rose-dark));
+    }
+    .prob-bar-fill.safe { background: linear-gradient(90deg, #a8d4b8, #5a9a70); }
+
+    /* ─── Narrative ─── */
+    .narrative-box {
+      background: var(--beige-mid); border-left: 3px solid var(--rose-gold);
+      padding: 16px 20px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 0.83rem; color: var(--text-mid); line-height: 1.65;
+    }
+    .narrative-box strong { color: var(--text-dark); }
+
+    /* ─── SHAP Table ─── */
+    .shap-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .shap-table th {
+      font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-light); padding: 8px 12px; text-align: left;
+      border-bottom: 1.5px solid var(--beige-dark);
+    }
+    .shap-table td {
+      padding: 12px; font-size: 0.82rem; border-bottom: 1px solid var(--beige-dark);
+      color: var(--text-mid);
+    }
+    .shap-table tr:last-child td { border-bottom: none; }
+    .shap-table tr:hover td { background: var(--beige); }
+
+    .shap-bar-mini {
+      height: 6px; border-radius: 6px; display: inline-block; min-width: 4px;
+      vertical-align: middle;
+    }
+    .shap-bar-mini.pos { background: linear-gradient(90deg, #e8b89a, #c97a7a); }
+    .shap-bar-mini.neg { background: linear-gradient(90deg, #a8d4b8, #5a9a70); }
+
+    .shap-val { font-family: 'Playfair Display', serif; font-weight: 600; }
+    .shap-val.pos { color: var(--danger); }
+    .shap-val.neg { color: var(--success); }
+
+    /* ─── Chart ─── */
+    .chart-wrap { position: relative; height: 240px; margin-top: 20px; }
+
+    /* ─── Alert Badge ─── */
+    .alert-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 50px; font-size: 0.72rem;
+      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .alert-badge.alert-on { background: #fce8e8; color: #b05a5a; border: 1px solid #e8b8b8; }
+    .alert-badge.alert-off { background: #e8f5ed; color: #4a8a60; border: 1px solid #a8d4b8; }
+
+    /* ─── Divider ─── */
+    .divider { height: 1px; background: var(--beige-dark); margin: 20px 0; }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center; padding: 40px 0 28px;
+      font-size: 0.72rem; color: var(--text-light); letter-spacing: 0.08em;
+      border-top: 1px solid var(--beige-dark); margin-top: 20px;
+    }
+    footer span { color: var(--rose-gold); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ─── Header ─── -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-area">
+        <h1>Factory<span>Guard</span> AI</h1>
+        <p>IoT Predictive Maintenance Dashboard</p>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-label" id="statusLabel">Connecting…</span>
+        <span class="status-version" id="statusVersion"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Row 1: Input + Result ─── -->
+  <div class="grid-2">
+
+    <!-- Sensor Input Card -->
+    <div class="card">
+      <div class="card-title">Sensor Readings</div>
+      <div class="card-subtitle">Input machine parameters</div>
+
+      <div class="form-grid">
+        <!-- Air Temp -->
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label">Air Temperature (K)</label>
+            <span class="form-value" id="val-air">298</span>
+          </div>
+          <input type="range" id="sl-air" min="295" max="315" step="0.1" value="298"
+            oninput="updateSlider(this,'val-air')" />
+        </div>
+        <!-- Process Temp -->
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label">Process Temperature (K)</label>
+            <span class="form-value" id="val-proc">308</span>
+          </div>
+          <input type="range" id="sl-proc" min="305" max="325" step="0.1" value="308"
+            oninput="updateSlider(this,'val-proc')" />
+        </div>
+        <!-- RPM -->
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label">Rotational Speed (RPM)</label>
+            <span class="form-value" id="val-rpm">1500</span>
+          </div>
+          <input type="range" id="sl-rpm" min="1000" max="2000" step="10" value="1500"
+            oninput="updateSlider(this,'val-rpm')" />
+        </div>
+        <!-- Torque -->
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label">Torque (Nm)</label>
+            <span class="form-value" id="val-torque">40</span>
+          </div>
+          <input type="range" id="sl-torque" min="3" max="80" step="0.5" value="40"
+            oninput="updateSlider(this,'val-torque')" />
+        </div>
+        <!-- Tool Wear -->
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label">Tool Wear (min)</label>
+            <span class="form-value" id="val-wear">50</span>
+          </div>
+          <input type="range" id="sl-wear" min="0" max="250" step="1" value="50"
+            oninput="updateSlider(this,'val-wear')" />
+        </div>
+        <!-- Machine Type -->
+        <div class="form-group">
+          <label class="form-label" style="margin-bottom:8px;">Machine Type</label>
+          <select id="sel-type">
+            <option value="0">L — Low quality</option>
+            <option value="1" selected>M — Medium quality</option>
+            <option value="2">H — High quality</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-predict" id="btnPredict" onclick="runPrediction()">
+        Run Prediction
+      </button>
+    </div>
+
+    <!-- Result Card -->
+    <div class="card">
+      <div class="card-title">Prediction Result</div>
+      <div class="card-subtitle">Real-time failure assessment</div>
+
+      <div id="resultArea">
+        <div class="result-empty">
+          <div class="icon">🔬</div>
+          <p>Awaiting sensor input</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Row 2: SHAP + Chart ─── -->
+  <div class="grid-2" id="shapRow" style="display:none">
+
+    <!-- SHAP Contributors -->
+    <div class="card">
+      <div class="card-title">SHAP Explanation</div>
+      <div class="card-subtitle">Top feature contributions</div>
+      <table class="shap-table" id="shapTable">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Value</th>
+            <th>SHAP</th>
+            <th>Impact</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="shapTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Chart -->
+    <div class="card">
+      <div class="card-title">Contribution Chart</div>
+      <div class="card-subtitle">Visual SHAP breakdown</div>
+      <div class="chart-wrap">
+        <canvas id="shapChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── Row 3: Narrative ─── -->
+  <div id="narrativeRow" style="display:none; margin-bottom:28px;">
+    <div class="card">
+      <div class="card-title">Root Cause Summary</div>
+      <div class="card-subtitle">AI-generated maintenance insight</div>
+      <div class="narrative-box" id="narrativeBox"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <strong>FactoryGuard <span>AI</span></strong> &nbsp;·&nbsp; IoT Predictive Maintenance Engine &nbsp;·&nbsp; Infotact Solutions Q4 2025 &nbsp;·&nbsp; XGBoost + SMOTE · SHAP Explainability
+</footer>
+
+<script>
+  const BASE = "http://localhost:5000";
+  let shapChartInstance = null;
+
+  // ─── Slider update ───
+  function updateSlider(el, valId) {
+    document.getElementById(valId).textContent = el.value;
+    const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+    const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    el.style.setProperty('--pct', pct);
+  }
+  // Init slider fills
+  document.querySelectorAll('input[type=range]').forEach(sl => {
+    const min = parseFloat(sl.min), max = parseFloat(sl.max), val = parseFloat(sl.value);
+    const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    sl.style.setProperty('--pct', pct);
+  });
+
+  // ─── Health check ───
+  async function checkHealth() {
+    try {
+      const r = await fetch(`${BASE}/health`);
+      const d = await r.json();
+      document.getElementById('statusDot').className = 'status-dot online';
+      document.getElementById('statusLabel').textContent = 'API Online';
+      document.getElementById('statusVersion').textContent = '· v' + (d.version || '1.0');
+    } catch {
+      document.getElementById('statusDot').className = 'status-dot offline';
+      document.getElementById('statusLabel').textContent = 'API Offline';
+    }
+  }
+  checkHealth();
+  setInterval(checkHealth, 15000);
+
+  // ─── Build full feature payload ───
+  function buildPayload() {
+    const air   = parseFloat(document.getElementById('sl-air').value);
+    const proc  = parseFloat(document.getElementById('sl-proc').value);
+    const rpm   = parseFloat(document.getElementById('sl-rpm').value);
+    const torq  = parseFloat(document.getElementById('sl-torque').value);
+    const wear  = parseFloat(document.getElementById('sl-wear').value);
+    const type  = parseInt(document.getElementById('sel-type').value);
+
+    const power = torq * (rpm * 2 * Math.PI / 60);
+    const p = {
+      "Type": type,
+      "Air temperature [K]": air,
+      "Process temperature [K]": proc,
+      "Rotational speed [rpm]": rpm,
+      "Torque [Nm]": torq,
+      "Tool wear [min]": wear,
+      "Air temperature [K]_lag1": air - 0.1, "Air temperature [K]_lag2": air - 0.2,
+      "Process temperature [K]_lag1": proc - 0.1, "Process temperature [K]_lag2": proc - 0.2,
+      "Rotational speed [rpm]_lag1": rpm - 2, "Rotational speed [rpm]_lag2": rpm - 4,
+      "Torque [Nm]_lag1": torq - 0.2, "Torque [Nm]_lag2": torq - 0.4,
+      "Tool wear [min]_lag1": wear - 1, "Tool wear [min]_lag2": wear - 2,
+      "Air temperature [K]_roll_mean_1h": air, "Air temperature [K]_roll_std_1h": 0.05,
+      "Process temperature [K]_roll_mean_1h": proc, "Process temperature [K]_roll_std_1h": 0.04,
+      "Rotational speed [rpm]_roll_mean_1h": rpm, "Rotational speed [rpm]_roll_std_1h": 2.0,
+      "Torque [Nm]_roll_mean_1h": torq, "Torque [Nm]_roll_std_1h": 0.5,
+      "Tool wear [min]_roll_mean_1h": wear, "Tool wear [min]_roll_std_1h": 0.5,
+      "Air temperature [K]_roll_mean_4h": air, "Air temperature [K]_roll_std_4h": 0.1,
+      "Process temperature [K]_roll_mean_4h": proc, "Process temperature [K]_roll_std_4h": 0.08,
+      "Rotational speed [rpm]_roll_mean_4h": rpm, "Rotational speed [rpm]_roll_std_4h": 3.0,
+      "Torque [Nm]_roll_mean_4h": torq, "Torque [Nm]_roll_std_4h": 0.7,
+      "Tool wear [min]_roll_mean_4h": wear, "Tool wear [min]_roll_std_4h": 1.0,
+      "Air temperature [K]_roll_mean_8h": air, "Air temperature [K]_roll_std_8h": 0.2,
+      "Process temperature [K]_roll_mean_8h": proc, "Process temperature [K]_roll_std_8h": 0.1,
+      "Rotational speed [rpm]_roll_mean_8h": rpm, "Rotational speed [rpm]_roll_std_8h": 4.0,
+      "Torque [Nm]_roll_mean_8h": torq, "Torque [Nm]_roll_std_8h": 0.8,
+      "Tool wear [min]_roll_mean_8h": wear, "Tool wear [min]_roll_std_8h": 1.5,
+      "Air temperature [K]_ema10": air, "Air temperature [K]_ema40": air,
+      "Process temperature [K]_ema10": proc, "Process temperature [K]_ema40": proc,
+      "Rotational speed [rpm]_ema10": rpm, "Rotational speed [rpm]_ema40": rpm,
+      "Torque [Nm]_ema10": torq, "Torque [Nm]_ema40": torq,
+      "Tool wear [min]_ema10": wear, "Tool wear [min]_ema40": wear,
+      "Power_W": power,
+      "Temp_diff_K": proc - air,
+      "Torque_per_rpm": torq / rpm,
+      "Wear_x_Torque": wear * torq,
+    };
+    return p;
+  }
+
+  // ─── Prediction ───
+  async function runPrediction() {
+    const btn = document.getElementById('btnPredict');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+    const payload = buildPayload();
+
+    try {
+      const r = await fetch(`${BASE}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      renderResult(d);
+    } catch (e) {
+      document.getElementById('resultArea').innerHTML = `
+        <div class="narrative-box" style="border-color:var(--danger)">
+          <strong>Connection error.</strong> Make sure the Flask API is running on <code>localhost:5000</code>.
+        </div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = 'Run Prediction';
+  }
+
+  // ─── Render Result ───
+  function renderResult(d) {
+    const isFailure = d.prediction === 1;
+    const prob = (d.failure_probability * 100).toFixed(1);
+    const alertOn = d.alert;
+
+    document.getElementById('resultArea').innerHTML = `
+      <div class="result-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div class="prediction-badge ${isFailure ? 'failure' : 'normal'}">
+            ${isFailure ? '⚠️' : '✅'} &nbsp; ${d.prediction_label}
+          </div>
+          <span class="alert-badge ${alertOn ? 'alert-on' : 'alert-off'}">
+            ${alertOn ? '🔴 Alert Active' : '🟢 No Alert'}
+          </span>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-box">
+            <span class="stat-val">${prob}%</span>
+            <div class="stat-key">Failure Prob.</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val">${d.latency_ms}ms</span>
+            <div class="stat-key">Latency</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" style="font-size:1rem;">${d.model_version.replace('xgboost_','').replace('_v1','')}</span>
+            <div class="stat-key">Model</div>
+          </div>
+        </div>
+
+        <div class="prob-bar-wrap">
+          <div class="prob-bar-label">
+            <span>Failure Probability</span>
+            <span>${prob}%</span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill ${isFailure ? '' : 'safe'}" id="probFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>`;
+
+    // Animate bar
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const fill = document.getElementById('probFill');
+        if (fill) fill.style.width = prob + '%';
+      }, 100);
+    });
+
+    // SHAP section
+    const expl = d.explanation;
+    if (expl && expl.top_contributors) {
+      renderShap(expl);
+      document.getElementById('shapRow').style.display = 'grid';
+    }
+    if (expl && expl.narrative_summary) {
+      document.getElementById('narrativeBox').innerHTML = `
+        <strong>📋 ${expl.narrative_summary}</strong><br><br>
+        🔧 <em>${expl.recommended_action}</em>`;
+      document.getElementById('narrativeRow').style.display = 'block';
+    }
+  }
+
+  // ─── Render SHAP ───
+  function renderShap(expl) {
+    const contributors = expl.top_contributors;
+    const maxAbs = Math.max(...contributors.map(c => Math.abs(c.shap_contribution)));
+
+    const tbody = document.getElementById('shapTbody');
+    tbody.innerHTML = contributors.map(c => {
+      const isPos = c.shap_contribution > 0;
+      const barW = Math.round(Math.abs(c.shap_contribution) / maxAbs * 80);
+      return `<tr>
+        <td style="font-weight:600;color:var(--text-dark)">${c.feature}</td>
+        <td>${c.value.toFixed(3)}</td>
+        <td><span class="shap-val ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${c.shap_contribution.toFixed(4)}</span></td>
+        <td style="font-size:0.72rem;color:var(--text-light)">${c.effect}</td>
+        <td><span class="shap-bar-mini ${isPos ? 'pos' : 'neg'}" style="width:${barW}px"></span></td>
+      </tr>`;
+    }).join('');
+
+    // Chart
+    const labels = contributors.map(c => c.feature.length > 18 ? c.feature.slice(0,18)+'…' : c.feature);
+    const vals   = contributors.map(c => c.shap_contribution);
+    const colors = vals.map(v => v > 0
+      ? 'rgba(201,149,108,0.75)'
+      : 'rgba(122,171,138,0.75)');
+    const borders = vals.map(v => v > 0 ? '#c9956c' : '#7aab8a');
+
+    if (shapChartInstance) { shapChartInstance.destroy(); }
+    const ctx = document.getElementById('shapChart').getContext('2d');
+    shapChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: vals,
+          backgroundColor: colors,
+          borderColor: borders,
+          borderWidth: 1.5,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` SHAP: ${ctx.raw > 0 ? '+' : ''}${ctx.raw.toFixed(4)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: '#ede6d6' },
+            ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9e9189' }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { family: 'Montserrat', size: 10 }, color: '#5c4f48' }
+          }
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>
